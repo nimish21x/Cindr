@@ -1,0 +1,568 @@
+:root {
+  --font-sf-pro: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-sf-pro);
+  --font-handwriting: 'Caveat', cursive, serif;
+  --font-body: var(--font-sf-pro);
+
+  --color-fire-primary: #ff6b00;
+  --color-fire-glow: rgba(255, 107, 0, 0.35);
+
+  --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #050914;
+  font-family: var(--font-body);
+  color: #f3f4f6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Canvas Fullscreen */
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+#canvas-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Top-Right Corner Apple Glass Mute / Unmute Button */
+.mute-btn {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.38);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(255, 255, 255, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.mute-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.mute-btn.muted {
+  background: rgba(255, 75, 75, 0.18);
+  border-color: rgba(255, 100, 100, 0.35);
+  color: #ff8888;
+}
+
+.mute-btn.muted:hover {
+  background: rgba(255, 75, 75, 0.28);
+  border-color: rgba(255, 100, 100, 0.5);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(255, 100, 100, 0.3);
+}
+
+.sound-icon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.sound-icon.hidden {
+  display: none !important;
+}
+
+/* Physical Paper Slip + Pen Trigger (Bottom-Left Corner - ~200px Medium Icon) */
+.physical-paper-container {
+  position: absolute;
+  bottom: 32px;
+  left: 32px;
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.physical-paper-slip {
+  position: relative;
+  width: 200px;
+  height: 155px;
+  background: linear-gradient(135deg, #f7eee1 0%, #e8d7be 100%);
+  border: 1px solid rgba(212, 194, 165, 0.95);
+  border-radius: 8px 20px 10px 14px;
+  transform: rotate(-6deg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), inset 0 0 20px rgba(180, 150, 110, 0.25);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.physical-paper-container:hover .physical-paper-slip {
+  transform: rotate(-2deg) translateY(-10px) scale(1.05);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(255, 150, 0, 0.45);
+}
+
+.paper-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 28px 28px 0;
+  border-color: transparent #d4c2a5 transparent transparent;
+  filter: drop-shadow(-2px 2px 3px rgba(0, 0, 0, 0.15));
+}
+
+.paper-header-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.paper-badge-text {
+  font-family: var(--font-sf-pro);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8c7153;
+}
+
+.paper-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.paper-line {
+  height: 3px;
+  background: rgba(160, 130, 90, 0.35);
+  border-radius: 3px;
+  width: 100%;
+}
+
+.paper-line.short {
+  width: 60%;
+}
+
+.paper-prompt-hint {
+  font-family: 'Caveat', cursive, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #5c4732;
+  margin-top: 2px;
+}
+
+.physical-pen {
+  position: absolute;
+  top: -24px;
+  right: -16px;
+  transform: rotate(38deg);
+  filter: drop-shadow(3px 6px 10px rgba(0, 0, 0, 0.5));
+  transition: transform var(--transition-smooth);
+}
+
+.physical-paper-container:hover .physical-pen {
+  transform: rotate(30deg) translateY(-4px) scale(1.08);
+}
+
+/* Apple Liquid Glass Overlay & Dialog Box */
+.note-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+}
+
+.note-modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Apple Liquid Glass Card */
+.apple-glass-card {
+  font-family: var(--font-sf-pro);
+  background: rgba(30, 35, 48, 0.48);
+  backdrop-filter: blur(50px) saturate(220%);
+  -webkit-backdrop-filter: blur(50px) saturate(220%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    0 30px 70px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+  border-radius: 24px;
+  width: 90vw;
+  max-width: 480px;
+  padding: 20px 24px 24px 24px;
+  position: relative;
+  transform: scale(1) translateY(0);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #ffffff;
+}
+
+.note-modal-overlay.hidden .apple-glass-card {
+  transform: scale(0.92) translateY(18px);
+}
+
+/* Window Bar / Title Bar */
+.apple-window-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.apple-window-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.apple-window-dots .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.apple-window-dots .close-dot {
+  background-color: #ff5f56;
+  border: 1px solid #e0443e;
+}
+
+.apple-window-dots .minimize-dot {
+  background-color: #ffbd2e;
+  border: 1px solid #dea123;
+}
+
+.apple-window-dots .zoom-dot {
+  background-color: #27c93f;
+  border: 1px solid #1aab29;
+}
+
+.apple-window-dots .dot:hover {
+  opacity: 0.85;
+  transform: scale(1.1);
+}
+
+.apple-window-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: -0.01em;
+}
+
+.apple-close-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.7);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.apple-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+/* Header Text */
+.apple-dialog-header {
+  margin-bottom: 16px;
+}
+
+.apple-dialog-title {
+  font-family: var(--font-sf-pro);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.022em;
+  margin-bottom: 4px;
+}
+
+.apple-dialog-subtitle {
+  font-family: var(--font-sf-pro);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.45;
+}
+
+/* Textarea Liquid Inset Box */
+.apple-dialog-body {
+  margin-bottom: 18px;
+}
+
+.apple-glass-textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 16px;
+  color: #ffffff;
+  font-family: var(--font-sf-pro);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  user-select: text;
+}
+
+.apple-glass-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+.apple-glass-textarea:focus {
+  background: rgba(0, 0, 0, 0.38);
+  border-color: rgba(255, 136, 0, 0.65);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(255, 136, 0, 0.22);
+}
+
+/* Footer & Apple Liquid Pill Action Button */
+.apple-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.apple-char-count {
+  font-family: var(--font-sf-pro);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.apple-glass-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-family: var(--font-sf-pro);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 11px 24px;
+  border-radius: 980px;
+  cursor: pointer;
+  box-shadow: 
+    0 6px 20px rgba(255, 107, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.apple-glass-primary-btn:hover {
+  background: linear-gradient(135deg, #ff7a18 0%, #ffa018 100%);
+  box-shadow: 
+    0 10px 28px rgba(255, 107, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transform: translateY(-1.5px) scale(1.02);
+}
+
+.apple-glass-primary-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+}
+
+/* Minimal Landing Welcome Dialog */
+.welcome-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 5, 12, 0.42);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.7s ease;
+}
+
+.welcome-glass-card {
+  font-family: var(--font-sf-pro);
+  background: rgba(22, 26, 38, 0.52);
+  backdrop-filter: blur(45px) saturate(210%);
+  -webkit-backdrop-filter: blur(45px) saturate(210%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  padding: 36px 40px;
+  max-width: 450px;
+  width: 88vw;
+  text-align: center;
+  color: #ffffff;
+  box-shadow: 
+    0 30px 70px rgba(0, 0, 0, 0.55),
+    0 0 50px rgba(255, 120, 0, 0.12),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.32);
+  animation: welcomeCardFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, filter 0.6s ease;
+}
+
+@keyframes welcomeCardFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.welcome-title {
+  font-family: var(--font-sf-pro);
+  font-size: 1.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.025em;
+  margin-bottom: 8px;
+}
+
+.welcome-message {
+  font-family: var(--font-sf-pro);
+  font-size: 1.02rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.01em;
+  margin-bottom: 28px;
+}
+
+.welcome-enter-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Minimalistic Enter Button */
+.minimal-enter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 980px;
+  padding: 10px 24px;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: var(--font-sf-pro);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 
+    0 4px 14px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.minimal-enter-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  transform: translateY(-1.5px);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(255, 130, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.minimal-enter-btn.pressed,
+.minimal-enter-btn:active {
+  transform: translateY(1px);
+  background: rgba(255, 120, 0, 0.28);
+  border-color: rgba(255, 140, 0, 0.6);
+  color: #ffffff;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    0 0 16px rgba(255, 120, 0, 0.35);
+}
+
+.enter-text {
+  font-weight: 500;
+}
+
+.enter-symbol {
+  font-size: 1.05rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+/* Dismiss Transition */
+.welcome-modal-overlay.dismissed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.welcome-modal-overlay.dismissed .welcome-glass-card {
+  transform: scale(0.94) translateY(12px);
+  opacity: 0;
+  filter: blur(8px);
+}
+
